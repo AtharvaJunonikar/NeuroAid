@@ -1,5 +1,21 @@
+
+
+
+# Virtual environments
+env310/
+.venv/
 venv/
+
+# Python cache
 __pycache__/
 *.pyc
+
+# macOS junk files
 .DS_Store
-*.csv
+
+# Secrets
+.env
+gspread_credentials.json
+
+# Project-specific files
+feedback.csv

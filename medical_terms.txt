@@ -1,0 +1,101 @@
+fever
+headache
+cough
+chest pain
+shortness of breath
+dizziness
+nausea
+vomiting
+fatigue
+pain
+abdominal pain
+back pain
+joint pain
+muscle pain
+throat pain
+cold
+flu
+diabetes
+hypertension
+asthma
+migraine
+anemia
+rash
+sore throat
+sore
+runny nose
+congestion
+loss of taste
+loss of smell
+ear pain
+skin rash
+itching
+blurred vision
+dry eyes
+hearing loss
+palpitations
+leg swelling
+weight loss
+weight gain
+night sweats
+yellow skin
+dark urine
+light stool
+constipation
+diarrhea
+urinary pain
+frequent urination
+lump in neck
+breast lump
+memory loss
+confusion
+difficulty speaking
+numbness
+tingling
+seizures
+tremors
+joint stiffness
+easy bruising
+bleeding gums
+hair loss
+excessive thirst
+insomnia
+sleep apnea
+wheezing
+hoarseness
+acid reflux
+heartburn
+bloating
+gastric pain
+indigestion
+loss of appetite
+anxiety
+depression
+panic attacks
+low blood pressure
+high blood pressure
+osteoporosis
+arthritis
+psoriasis
+eczema
+bronchitis
+pneumonia
+tuberculosis
+hepatitis
+kidney stones
+gallstones
+appendicitis
+stroke
+heart attack
+cardiac arrest
+allergy
+sinusitis
+meningitis
+encephalitis
+ulcers
+hypothyroidism
+hyperthyroidism
+parkinson's disease
+alzheimer's disease
+multiple sclerosis
+cancer
