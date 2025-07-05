@@ -10,23 +10,34 @@ from oauth2client.service_account import ServiceAccountCredentials
 import gspread
 import torch
 from transformers import DistilBertTokenizerFast, DistilBertForSequenceClassification
-from textblob import TextBlob
+#from textblob import TextBlob
 from transformers import pipeline
 # --- SymSpell for Spelling Correction ---
 from symspellpy import SymSpell, Verbosity
 # --- SciSpacy for NER ---
 import spacy
-
-
-
+import subprocess
+import os
+import sys
+import socket
 from dotenv import load_dotenv
 load_dotenv()
-import os
+
+# Detect local IP dynamically using socket
+def get_local_ip():
+    try:
+        # Use socket to connect to an external address and get the IP used for the connection
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))  # doesn't actually send data
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except:
+        return "127.0.0.1"
 
 api_key = os.getenv("TOGETHER_AI_API_KEY")
 credentials_path = os.getenv("GOOGLE_SHEET_CREDENTIALS")
 sheet_id = os.getenv("GOOGLE_SHEET_ID")
-
 
 # --- Initialize SymSpell ---
 sym_spell = SymSpell(max_dictionary_edit_distance=2, prefix_length=7)
@@ -71,10 +82,12 @@ nlp = spacy.load("en_ner_bc5cdr_md")  # Clinical NER model
 
 # --- Load your DistilBERT Disease Prediction Model ---
 model_path = "./ml_model/saved_model"
-model = DistilBertForSequenceClassification.from_pretrained(model_path, torch_dtype=torch.float32).to('cpu')
+model = DistilBertForSequenceClassification.from_pretrained(model_path, torch_dtype=torch.float32, device_map="meta")
+model = model.to_empty(device=torch.device("cpu"))
 tokenizer = DistilBertTokenizerFast.from_pretrained(model_path)
 
 # --- Extract symptoms ---
+# --- Spell Correction + NER-based Symptom Extraction ---
 def correct_and_extract_symptoms(text):
     corrected_text = correct_spelling(text)
     doc = nlp(corrected_text)
@@ -101,13 +114,6 @@ def predict_disease(text):
     return predicted_label
 
 
-# --- Spell Correction + NER-based Symptom Extraction ---
-def correct_and_extract_symptoms(text):
-    corrected_text = correct_spelling(text)
-    doc = nlp(corrected_text)
-    symptoms = [ent.text for ent in doc.ents if ent.label_ == "DISEASE"]
-    return corrected_text, symptoms
-
 
 
 def fuzzy_match_symptoms(extracted):
@@ -120,8 +126,8 @@ def fuzzy_match_symptoms(extracted):
 
 # --- Full Pipeline ---
 def full_pipeline(user_input):
-    corrected_text = correct_spelling(user_input)
-    extracted = extract_symptoms(corrected_text)
+    corrected_text, extracted = correct_and_extract_symptoms(user_input)
+   # extracted = extract_symptoms(corrected_text)
     matched = fuzzy_match_symptoms(extracted)
     return matched
 
@@ -217,12 +223,12 @@ def save_feedback(pid, role, age, gender, symptoms, diagnosis, explanation, clar
         diagnosis, explanation, clarity, trust, ux_score, comment, sentiment
     ]
 
-    # --- Save to Google Sheets ---
-    try:
-        sheet = get_google_sheet()
-        sheet.append_row(data_row)
-    except Exception as e:
-        st.error(f"❌ Failed to save to Google Sheets: {e}")
+    # # --- Save to Google Sheets ---
+    # try:
+    #     sheet = get_google_sheet()
+    #     sheet.append_row(data_row)
+    # except Exception as e:
+    #     st.error(f"❌ Failed to save to Google Sheets: {e}")
 
     # --- Save to local CSV (backup) ---
     with open(feedback_path, mode='a', newline='', encoding='utf-8') as file:
@@ -249,13 +255,19 @@ def has_already_submitted(participant_id):
 
 
 
-
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
 
 # Load Hugging Face sentiment analysis model (RoBERTa trained on tweets)
-sentiment_pipeline = pipeline(
-    "sentiment-analysis",
-    model="cardiffnlp/twitter-roberta-base-sentiment"
-)
+model_name = "cardiffnlp/twitter-roberta-base-sentiment"
+#sentiment_pipeline = pipeline("sentiment-analysis", model="cardiffnlp/twitter-roberta-base-sentiment")
+
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModelForSequenceClassification.from_pretrained(model_name)
+
+sentiment_pipeline = pipeline("sentiment-analysis", model=model, tokenizer=tokenizer)
+
+
+
 
 def analyze_sentiment(comment):
     if not comment.strip():
@@ -269,11 +281,45 @@ def analyze_sentiment(comment):
         return "Positive"
     else:
         return "Neutral"
+#------------------------------------------------------------------------------
+# --- Developer Dashboard Button ---
+# with st.expander("🛠 Developer Tools", expanded=False):
+#     password = st.text_input("Enter developer password", type="password")
+#     if st.button("Open Dashboard"):
+#         if password == "hcai1234":
+#             dashboard_script = "feedback_dashboard_streamlit.py"
+#             dashboard_port = "8506"  # run on a new port
+
+#             subprocess.Popen(["streamlit", "run", dashboard_script, "--server.port", dashboard_port])
+
+#             # YOUR local network IP (same you used for app)
+#             dev_ip = "192.168.0.25"
+#             dashboard_url = f"http://{dev_ip}:{dashboard_port}"
+#             st.success(f"✅ Dashboard started at: [Click to open]({dashboard_url})")
+#         else:
+#             st.error("❌ Incorrect password. Access denied.")
+with st.expander("🛠 Developer Tools", expanded=False):
+    password = st.text_input("Enter developer password", type="password")
+    if st.button("Open Dashboard"):
+        if password == "1234":
+            dashboard_script = "feedback_dashboard_streamlit.py"
+            dashboard_port = "8506"  # run on a different port
+
+            subprocess.Popen(["streamlit", "run", dashboard_script, "--server.port", dashboard_port])
+
+            # ✅ Dynamically detect the IP of this laptop
+            dev_ip = get_local_ip()
+            dashboard_url = f"http://{dev_ip}:{dashboard_port}"
+            st.success(f"✅ Dashboard started at: [Click to open]({dashboard_url})")
+        else:
+            st.error("❌ Incorrect password. Access denied.")
+
 
 
 
 # --- Streamlit UI Starts Here ---
 st.title("NeuroAid: Symptom Checker")
+
 
 # --- Session State ---
 if "participant_id" not in st.session_state:
@@ -334,7 +380,7 @@ else:
         corrected_text, extracted_symptoms = correct_and_extract_symptoms(user_input)
         st.session_state.corrected_text = corrected_text
         st.session_state.extracted_symptoms = extracted_symptoms
-        st.session_state.predicted_diagnosis = predict_disease(corrected_text)
+        st.session_state.predicted_diagnosis, _ = predict_disease(corrected_text)
 
 
         # 🛑 NEW: Call Together.ai API to generate explanation dynamically
@@ -398,3 +444,5 @@ else:
                 st.rerun()
             else:
                 st.warning("⚠️ You must agree to the research consent checkbox before submitting.")
+
+        
