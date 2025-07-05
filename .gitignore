@@ -277,3 +277,6 @@ yarn-error.log*
 *.orig
 *.bak
 *.backup
+
+new.py
+gspread_credentials.json
