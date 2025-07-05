@@ -277,3 +277,12 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+echo "
+# Prevent re-adding problematic files
+venv310/
+.vs/
+ml_model/results/checkpoint-*/
+*.pt
+*.dylib
+en.bin" >> .gitignore
