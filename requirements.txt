@@ -25,7 +25,7 @@ requests>=2.31.0
 python-dotenv>=1.0.0
 
 # Data Processing
-csv-utils>=1.0.0
+#csv-utils>=1.0.0
 
 # Date and Time
 python-dateutil>=2.8.2
@@ -106,8 +106,8 @@ concurrent-futures>=3.1.1; python_version<"3.0"
 scipy>=1.11.1
 
 # Optional: For advanced visualization (if needed)
-# matplotlib>=3.7.2
-# seaborn>=0.12.2
+ matplotlib>=3.7.2
+ seaborn>=0.12.2
 
 # Optional: For advanced data analysis
 # plotly>=5.15.0
