@@ -7,3 +7,5 @@ C:/Users/athar/Downloads/hcai_app[[:space:]]test/hcai_app[[:space:]]test/ml_mode
 *.pt filter=lfs diff=lfs merge=lfs -text
 *.dylib filter=lfs diff=lfs merge=lfs -text
 en.bin filter=lfs diff=lfs merge=lfs -text
+ml_model/New/saved_model/model.safetensors filter=lfs diff=lfs merge=lfs -text
+ml_model/saved_model/pytorch_model.bin filter=lfs diff=lfs merge=lfs -text
