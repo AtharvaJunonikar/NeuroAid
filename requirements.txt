@@ -34,7 +34,7 @@ python-dateutil>=2.8.2
 regex>=2023.6.3
 
 # Additional NLP Dependencies
-sentencepiece>=0.1.99
+# sentencepiece>=0.1.99
 protobuf>=3.20.3
 
 # For potential model downloads and caching
