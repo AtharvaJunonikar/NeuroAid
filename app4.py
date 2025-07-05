@@ -35,10 +35,20 @@ def get_local_ip():
     except:
         return "127.0.0.1"
 
-# Environment variables
-api_key = os.getenv("TOGETHER_AI_API_KEY")
-credentials_path = os.getenv("GOOGLE_SHEET_CREDENTIALS")
-sheet_id = os.getenv("GOOGLE_SHEET_ID")
+# Streamlit Secrets
+# Load environment variables
+# Environment variables - try Streamlit secrets first, then fall back to env vars
+try:
+    api_key = st.secrets["TOGETHER_AI_API_KEY"]
+    google_credentials = dict(st.secrets["GOOGLE_SHEET_CREDENTIAlS"])  # Note: you have a typo in your secrets
+    sheet_id = st.secrets["GOOGLE_SHEET_ID"]
+    credentials_path = None  # We'll use the credentials dict directly
+except (KeyError, FileNotFoundError):
+    # Fallback to environment variables for local development
+    api_key = os.getenv("TOGETHER_AI_API_KEY")
+    credentials_path = os.getenv("GOOGLE_SHEET_CREDENTIALS")
+    sheet_id = os.getenv("GOOGLE_SHEET_ID")
+    google_credentials = None
 
 # --- Initialize SymSpell with Medical Context ---
 @st.cache_resource
@@ -771,12 +781,19 @@ def generate_explanation_together_ai(api_key, user_role, symptoms_list, predicte
 
 # --- Google Sheets setup ---
 def get_google_sheet():
-    if not credentials_path or not sheet_id:
-        return None
-    
     try:
         scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-        creds = ServiceAccountCredentials.from_json_keyfile_name(credentials_path, scope)
+        
+        if google_credentials:
+            # Use credentials from Streamlit secrets
+            creds = ServiceAccountCredentials.from_json_keyfile_dict(google_credentials, scope)
+        elif credentials_path:
+            # Use credentials file path (for local development)
+            creds = ServiceAccountCredentials.from_json_keyfile_name(credentials_path, scope)
+        else:
+            st.error("No Google credentials available")
+            return None
+            
         client = gspread.authorize(creds)
         sheet = client.open_by_key(sheet_id).sheet1
         return sheet
