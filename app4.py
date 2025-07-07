@@ -780,6 +780,43 @@ def generate_explanation_together_ai(api_key, user_role, symptoms_list, predicte
         return f"❌ Error connecting to API: {e}"
 
 # --- Google Sheets setup ---
+
+def get_google_sheet():
+    try:
+        # Get the sheet ID from secrets
+        sheet_id = st.secrets["GOOGLE_SHEET_ID"]
+        
+        # For public sheets, you can use gspread without authentication
+        gc = gspread.service_account()  # This might still require auth
+        
+        # Alternative: Use the public sheet URL directly
+        # Create a gspread client without authentication for public sheets
+        sheet_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/edit#gid=0"
+        
+        # Note: gspread typically requires authentication even for public sheets
+        # The pandas approach (Option 1) is better for truly public sheets
+        
+        # If you still want to use gspread, you'll need to keep your service account
+        # But you can simplify the credentials handling:
+        
+        # Use the credentials from secrets
+        google_credentials = dict(st.secrets["GOOGLE_SHEET_CREDENTIALS"])
+        
+        # Create credentials and authorize
+        from google.oauth2.service_account import Credentials
+        
+        credentials = Credentials.from_service_account_info(google_credentials)
+        gc = gspread.authorize(credentials)
+        
+        # Open the sheet
+        sheet = gc.open_by_key(sheet_id).sheet1
+        return sheet
+        
+    except Exception as e:
+        st.error(f"Error connecting to Google Sheets: {e}")
+        return None
+
+'''
 def get_google_sheet():
     try:
         scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
@@ -800,6 +837,7 @@ def get_google_sheet():
     except Exception as e:
         st.error(f"Error connecting to Google Sheets: {e}")
         return None
+        '''
 
 # --- Save feedback ---
 def save_feedback(pid, role, age, gender, symptoms, diagnosis, explanation, clarity, trust, ux_score, comment, sentiment, confidence_score=None):
@@ -814,6 +852,32 @@ def save_feedback(pid, role, age, gender, symptoms, diagnosis, explanation, clar
     ]
 
     # Save to Google Sheets
+    def save_feedback_data(data_row):
+    try:
+        sheet = get_google_sheet()
+        if sheet:
+            sheet.append_row(data_row)
+            st.success("Data saved to Google Sheets")
+    except Exception as e:
+        st.warning(f"Could not save to Google Sheets: {e}")
+    
+    # Save to local CSV (fallback)
+    feedback_path = os.path.join(os.getcwd(), 'feedback.csv')
+    try:
+        with open(feedback_path, mode='a', newline='', encoding='utf-8') as file:
+            writer = csv.writer(file)
+            if file.tell() == 0:
+                writer.writerow([
+                    "Date", "Time", "Participant ID", "User Role", "Age", "Gender", "Symptoms",
+                    "Diagnosis", "Explanation", "Clarity Score", "Trust Score", "UX Score", 
+                    "Comment", "Sentiment", "Confidence Score"
+                ])
+            writer.writerow(data_row)
+        st.success("Data saved to local CSV file")
+    except Exception as e:
+        st.error(f"Error saving to CSV: {e}")
+    
+    '''
     try:
         sheet = get_google_sheet()
         if sheet:
@@ -835,6 +899,7 @@ def save_feedback(pid, role, age, gender, symptoms, diagnosis, explanation, clar
             writer.writerow(data_row)
     except Exception as e:
         st.error(f"Error saving to CSV: {e}")
+        '''
 
 # --- Check if already submitted ---
 def has_already_submitted(participant_id):
