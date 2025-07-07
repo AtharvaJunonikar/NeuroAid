@@ -1145,11 +1145,16 @@ def main():
                 st.balloons()
                 st.markdown("### 🎉 Participation Complete!")
                 st.markdown("Your feedback is valuable for improving our medical AI system.")
-                
+                st.info("The page will reset in a moment...")
+                time.sleep(2)  # Wait 2 seconds
+                # Reset session state
+                for key in list(st.session_state.keys()):
+                     del st.session_state[key]
+                     st.rerun()
             except Exception as e:
                 st.error(f"❌ Error saving feedback: {e}")
                 st.error("Please try again or contact support if the problem persists.")
-
+         # Show success message and then reset after a delay
     # Information Section
     st.sidebar.markdown("### ℹ️ About NeuroAid")
     st.sidebar.markdown("""
