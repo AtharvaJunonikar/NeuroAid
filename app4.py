@@ -780,7 +780,7 @@ def generate_explanation_together_ai(api_key, user_role, symptoms_list, predicte
         return f"❌ Error connecting to API: {e}"
 
 # --- Google Sheets setup ---
-
+'''
 def get_google_sheet():
     try:
         # Get the sheet ID from secrets
@@ -817,27 +817,26 @@ def get_google_sheet():
         return None
 
 '''
+
 def get_google_sheet():
     try:
         scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
         
-        if google_credentials:
-            # Use credentials from Streamlit secrets
-            creds = ServiceAccountCredentials.from_json_keyfile_dict(google_credentials, scope)
-        elif credentials_path:
-            # Use credentials file path (for local development)
-            creds = ServiceAccountCredentials.from_json_keyfile_name(credentials_path, scope)
-        else:
-            st.error("No Google credentials available")
-            return None
-            
+        # Get credentials and sheet ID from Streamlit secrets
+        google_credentials = dict(st.secrets["GOOGLE_SHEET_CREDENTIALS"])
+        sheet_id = st.secrets["GOOGLE_SHEET_ID"]
+        
+        # Use credentials from Streamlit secrets
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(google_credentials, scope)
+        
         client = gspread.authorize(creds)
         sheet = client.open_by_key(sheet_id).sheet1
         return sheet
+        
     except Exception as e:
         st.error(f"Error connecting to Google Sheets: {e}")
         return None
-        '''
+        
 
 # --- Save feedback ---
 def save_feedback(pid, role, age, gender, symptoms, diagnosis, explanation, clarity, trust, ux_score, comment, sentiment, confidence_score=None):
