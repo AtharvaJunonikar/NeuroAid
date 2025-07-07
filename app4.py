@@ -852,7 +852,7 @@ def save_feedback(pid, role, age, gender, symptoms, diagnosis, explanation, clar
     ]
 
     # Save to Google Sheets
-    def save_feedback_data(data_row):
+def save_feedback_data(data_row):
     try:
         sheet = get_google_sheet()
         if sheet:
