@@ -780,43 +780,6 @@ def generate_explanation_together_ai(api_key, user_role, symptoms_list, predicte
         return f"❌ Error connecting to API: {e}"
 
 # --- Google Sheets setup ---
-'''
-def get_google_sheet():
-    try:
-        # Get the sheet ID from secrets
-        sheet_id = st.secrets["GOOGLE_SHEET_ID"]
-        
-        # For public sheets, you can use gspread without authentication
-        gc = gspread.service_account()  # This might still require auth
-        
-        # Alternative: Use the public sheet URL directly
-        # Create a gspread client without authentication for public sheets
-        sheet_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/edit#gid=0"
-        
-        # Note: gspread typically requires authentication even for public sheets
-        # The pandas approach (Option 1) is better for truly public sheets
-        
-        # If you still want to use gspread, you'll need to keep your service account
-        # But you can simplify the credentials handling:
-        
-        # Use the credentials from secrets
-        google_credentials = dict(st.secrets["GOOGLE_SHEET_CREDENTIALS"])
-        
-        # Create credentials and authorize
-        from google.oauth2.service_account import Credentials
-        
-        credentials = Credentials.from_service_account_info(google_credentials)
-        gc = gspread.authorize(credentials)
-        
-        # Open the sheet
-        sheet = gc.open_by_key(sheet_id).sheet1
-        return sheet
-        
-    except Exception as e:
-        st.error(f"Error connecting to Google Sheets: {e}")
-        return None
-
-'''
 
 def get_google_sheet():
     try:
