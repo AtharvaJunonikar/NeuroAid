@@ -780,7 +780,18 @@ def generate_explanation_together_ai(api_key, user_role, symptoms_list, predicte
         return f"❌ Error connecting to API: {e}"
 
 # --- Google Sheets setup ---
+# --- Fixed Google Sheets Integration ---
+
+import streamlit as st
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+import csv
+import os
+from datetime import datetime
+
+# --- Fixed Google Sheets setup ---
 def get_google_sheet():
+    """Get Google Sheets connection with better error handling"""
     try:
         scope = [
             "https://spreadsheets.google.com/feeds",
@@ -820,9 +831,13 @@ def get_google_sheet():
         # Open the sheet
         sheet = client.open_by_key(sheet_id).sheet1
         
-        # Test the connection by getting sheet info
-        sheet_info = sheet.get_all_records(limit=1)
-        st.success(f"✅ Connected to Google Sheet: {sheet.title}")
+        # Test the connection by getting sheet info (FIXED - removed limit parameter)
+        try:
+            # Just get the first few rows to test connection
+            sheet_data = sheet.get_all_values()
+            st.success(f"✅ Connected to Google Sheet: {sheet.title}")
+        except Exception as e:
+            st.warning(f"⚠️ Connected to sheet but couldn't read data: {e}")
         
         return sheet
         
@@ -836,8 +851,9 @@ def get_google_sheet():
         st.error(f"❌ Error connecting to Google Sheets: {e}")
         return None
 
-              #--- Fixed save feedback function ---
+# --- Fixed save feedback function ---
 def save_feedback_data(data_row):
+    """Save feedback with better error handling and logging"""
     success_google = False
     success_local = False
     
@@ -945,6 +961,7 @@ def save_feedback(pid, role, age, gender, symptoms, diagnosis, explanation, clar
 
 # --- Test Google Sheets connection ---
 def test_google_sheets_connection():
+    """Test function to check Google Sheets connection"""
     st.subheader("🧪 Test Google Sheets Connection")
     
     if st.button("Test Connection"):
@@ -953,13 +970,16 @@ def test_google_sheets_connection():
             
             if sheet:
                 try:
-                    # Try to read some data
-                    records = sheet.get_all_records(limit=5)
+                    # FIXED: Use get_all_records() without limit parameter
+                    records = sheet.get_all_records()
+                    # Manually limit to first 5 records for display
+                    limited_records = records[:5] if records else []
+                    
                     st.success(f"✅ Connection successful! Sheet has {len(records)} records (showing first 5)")
                     
-                    if records:
+                    if limited_records:
                         st.write("Sample data:")
-                        st.json(records)
+                        st.json(limited_records)
                     
                     # Test write access
                     test_row = ["TEST", "TEST", "test_connection", "Test", "25", "Test", "Test symptoms", "Test diagnosis", "Test explanation", "5", "5", "5", "Connection test", "Positive", "0.95"]
@@ -986,6 +1006,7 @@ def test_google_sheets_connection():
 
 # --- Debug information for Google Sheets ---
 def show_google_sheets_debug():
+    """Show debug information for Google Sheets setup"""
     st.subheader("🔍 Google Sheets Debug Information")
     
     # Check secrets
@@ -1016,6 +1037,90 @@ def show_google_sheets_debug():
                 
         except Exception as e:
             st.error(f"❌ Environment variables error: {e}")
+    
+    # Test connection
+    test_google_sheets_connection()
+
+# --- Add this to your developer tools section ---
+def show_developer_tools():
+    with st.expander("🛠 Developer Tools", expanded=False):
+        password = st.text_input("Enter developer password", type="password")
+        if password == "1234":
+            # Add Google Sheets debug section
+            show_google_sheets_debug()
+            
+            # Your existing developer tools code...
+            if st.button("Open Dashboard"):
+                dashboard_script = "feedback_dashboard_streamlit.py"
+                dashboard_port = "8506"
+                
+                try:
+                    import subprocess
+                    subprocess.Popen(["streamlit", "run", dashboard_script, "--server.port", dashboard_port])
+                    # dev_ip = get_local_ip()  # You'll need to implement this function
+                    dashboard_url = f"http://localhost:{dashboard_port}"
+                    st.success(f"✅ Dashboard started at: [Click to open]({dashboard_url})")
+                except Exception as e:
+                    st.error(f"Error starting dashboard: {e}")
+            
+            # create_symptoms_list_from_dataset()  # You'll need to implement this function
+        else:
+            if st.button("Open Dashboard"):
+                st.error("❌ Incorrect password. Access denied.")
+
+# --- Alternative approach using newer gspread methods ---
+def get_google_sheet_alternative():
+    """Alternative approach using newer gspread methods if you have a newer version"""
+    try:
+        scope = [
+            "https://spreadsheets.google.com/feeds",
+            "https://www.googleapis.com/auth/drive",
+            "https://www.googleapis.com/auth/spreadsheets"
+        ]
+        
+        # Try Streamlit secrets first
+        try:
+            google_credentials = dict(st.secrets["GOOGLE_SHEET_CREDENTIALS"])
+            sheet_id = st.secrets["GOOGLE_SHEET_ID"]
+        except (KeyError, FileNotFoundError):
+            # Fallback to environment variables
+            credentials_path = os.getenv("GOOGLE_SHEET_CREDENTIALS")
+            sheet_id = os.getenv("GOOGLE_SHEET_ID")
+            
+            if credentials_path and os.path.exists(credentials_path):
+                import json
+                with open(credentials_path, 'r') as f:
+                    google_credentials = json.load(f)
+            else:
+                st.error("❌ No Google Sheets credentials found")
+                return None
+        
+        if not sheet_id:
+            st.error("❌ Google Sheet ID not found")
+            return None
+        
+        # Create credentials
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(google_credentials, scope)
+        
+        # Authorize and get client
+        client = gspread.authorize(creds)
+        
+        # Open the sheet
+        sheet = client.open_by_key(sheet_id).sheet1
+        
+        # Test the connection by getting sheet values
+        try:
+            # Get just the first row to test
+            values = sheet.get_values("A1:Z1")
+            st.success(f"✅ Connected to Google Sheet: {sheet.title}")
+        except Exception as e:
+            st.warning(f"⚠️ Connected to sheet but couldn't read data: {e}")
+        
+        return sheet
+        
+    except Exception as e:
+        st.error(f"❌ Error connecting to Google Sheets: {e}")
+        return None
     
     # Test connection
     test_google_sheets_connection()
