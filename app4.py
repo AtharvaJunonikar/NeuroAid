@@ -40,7 +40,7 @@ def get_local_ip():
 # Environment variables - try Streamlit secrets first, then fall back to env vars
 try:
     api_key = st.secrets["TOGETHER_AI_API_KEY"]
-    google_credentials = dict(st.secrets["GOOGLE_SHEET_CREDENTIALS"]) s
+    google_credentials = dict(st.secrets["GOOGLE_SHEET_CREDENTIALS"]) 
     sheet_id = st.secrets["GOOGLE_SHEET_ID"]
     credentials_path = None  # We'll use the credentials dict directly
 except (KeyError, FileNotFoundError):
