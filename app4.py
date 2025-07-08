@@ -782,6 +782,251 @@ def generate_explanation_together_ai(api_key, user_role, symptoms_list, predicte
 # --- Google Sheets setup ---
 
 def get_google_sheet():
+    """Get Google Sheets connection with better error handling"""
+    try:
+        scope = [
+            "https://spreadsheets.google.com/feeds",
+            "https://www.googleapis.com/auth/drive",
+            "https://www.googleapis.com/auth/spreadsheets"
+        ]
+        
+        # Try Streamlit secrets first
+        try:
+            google_credentials = dict(st.secrets["GOOGLE_SHEET_CREDENTIALS"])
+            sheet_id = st.secrets["GOOGLE_SHEET_ID"]
+            st.success("✅ Using Streamlit secrets for Google Sheets")
+        except (KeyError, FileNotFoundError):
+            # Fallback to environment variables
+            credentials_path = os.getenv("GOOGLE_SHEET_CREDENTIALS")
+            sheet_id = os.getenv("GOOGLE_SHEET_ID")
+            
+            if credentials_path and os.path.exists(credentials_path):
+                import json
+                with open(credentials_path, 'r') as f:
+                    google_credentials = json.load(f)
+                st.info("ℹ️ Using environment variables for Google Sheets")
+            else:
+                st.error("❌ No Google Sheets credentials found")
+                return None
+        
+        if not sheet_id:
+            st.error("❌ Google Sheet ID not found")
+            return None
+        
+        # Create credentials
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(google_credentials, scope)
+        
+        # Authorize and get client
+        client = gspread.authorize(creds)
+        
+        # Open the sheet
+        sheet = client.open_by_key(sheet_id).sheet1
+        
+        # Test the connection by getting sheet info
+        sheet_info = sheet.get_all_records(limit=1)
+        st.success(f"✅ Connected to Google Sheet: {sheet.title}")
+        
+        return sheet
+        
+    except gspread.exceptions.SpreadsheetNotFound:
+        st.error("❌ Google Sheet not found. Check your GOOGLE_SHEET_ID.")
+        return None
+    except gspread.exceptions.APIError as e:
+        st.error(f"❌ Google Sheets API Error: {e}")
+        return None
+    except Exception as e:
+        st.error(f"❌ Error connecting to Google Sheets: {e}")
+        return None
+
+# --- Fixed save feedback function ---
+def save_feedback_data(data_row):
+    """Save feedback with better error handling and logging"""
+    success_google = False
+    success_local = False
+    
+    # Try to save to Google Sheets first
+    try:
+        st.info("📤 Attempting to save to Google Sheets...")
+        sheet = get_google_sheet()
+        
+        if sheet:
+            # Check if headers exist
+            try:
+                headers = sheet.row_values(1)
+                if not headers:
+                    # Add headers if sheet is empty
+                    header_row = [
+                        "Date", "Time", "Participant ID", "User Role", "Age", "Gender", "Symptoms",
+                        "Diagnosis", "Explanation", "Clarity Score", "Trust Score", "UX Score", 
+                        "Comment", "Sentiment", "Confidence Score"
+                    ]
+                    sheet.append_row(header_row)
+                    st.info("📝 Added headers to Google Sheet")
+            except Exception as e:
+                st.warning(f"⚠️ Could not check headers: {e}")
+            
+            # Append the data
+            sheet.append_row(data_row)
+            st.success("✅ Data saved to Google Sheets successfully!")
+            success_google = True
+            
+    except Exception as e:
+        st.error(f"❌ Failed to save to Google Sheets: {e}")
+        st.info("🔄 Falling back to local CSV storage...")
+    
+    # Save to local CSV (fallback or backup)
+    try:
+        feedback_path = os.path.join(os.getcwd(), 'feedback.csv')
+        file_exists = os.path.exists(feedback_path)
+        
+        with open(feedback_path, mode='a', newline='', encoding='utf-8') as file:
+            writer = csv.writer(file)
+            
+            # Write headers if file is new
+            if not file_exists or os.path.getsize(feedback_path) == 0:
+                writer.writerow([
+                    "Date", "Time", "Participant ID", "User Role", "Age", "Gender", "Symptoms",
+                    "Diagnosis", "Explanation", "Clarity Score", "Trust Score", "UX Score", 
+                    "Comment", "Sentiment", "Confidence Score"
+                ])
+            
+            writer.writerow(data_row)
+        
+        st.success("✅ Data saved to local CSV file successfully!")
+        success_local = True
+        
+    except Exception as e:
+        st.error(f"❌ Error saving to local CSV: {e}")
+    
+    # Return success status
+    return success_google or success_local
+
+# --- Updated save_feedback function ---
+def save_feedback(pid, role, age, gender, symptoms, diagnosis, explanation, clarity, trust, ux_score, comment, sentiment, confidence_score=None):
+    """Save feedback with proper data formatting"""
+    now = datetime.now()
+    date_str = now.strftime("%d.%m.%Y")
+    time_str = now.strftime("%H:%M:%S")
+
+    # Format symptoms properly
+    symptoms_str = ", ".join(symptoms) if isinstance(symptoms, list) else str(symptoms)
+    
+    # Format confidence score
+    confidence_str = f"{confidence_score:.3f}" if confidence_score is not None else "N/A"
+
+    data_row = [
+        date_str, 
+        time_str, 
+        pid, 
+        role, 
+        age, 
+        gender, 
+        symptoms_str,
+        diagnosis, 
+        explanation, 
+        clarity, 
+        trust, 
+        ux_score, 
+        comment, 
+        sentiment,
+        confidence_str
+    ]
+    
+    # Debug: Show what we're trying to save
+    st.write("📊 Data to be saved:")
+    st.json({
+        "Date": date_str,
+        "Time": time_str,
+        "Participant ID": pid,
+        "User Role": role,
+        "Symptoms": symptoms_str,
+        "Diagnosis": diagnosis,
+        "Confidence": confidence_str
+    })
+    
+    return save_feedback_data(data_row)
+
+# --- Test Google Sheets connection ---
+def test_google_sheets_connection():
+    """Test function to check Google Sheets connection"""
+    st.subheader("🧪 Test Google Sheets Connection")
+    
+    if st.button("Test Connection"):
+        with st.spinner("Testing Google Sheets connection..."):
+            sheet = get_google_sheet()
+            
+            if sheet:
+                try:
+                    # Try to read some data
+                    records = sheet.get_all_records(limit=5)
+                    st.success(f"✅ Connection successful! Sheet has {len(records)} records (showing first 5)")
+                    
+                    if records:
+                        st.write("Sample data:")
+                        st.json(records)
+                    
+                    # Test write access
+                    test_row = ["TEST", "TEST", "test_connection", "Test", "25", "Test", "Test symptoms", "Test diagnosis", "Test explanation", "5", "5", "5", "Connection test", "Positive", "0.95"]
+                    
+                    if st.button("Test Write Access"):
+                        try:
+                            sheet.append_row(test_row)
+                            st.success("✅ Write test successful!")
+                            
+                            # Remove test row
+                            if st.button("Remove Test Row"):
+                                try:
+                                    sheet.delete_rows(sheet.row_count)
+                                    st.success("✅ Test row removed!")
+                                except Exception as e:
+                                    st.error(f"❌ Could not remove test row: {e}")
+                        except Exception as e:
+                            st.error(f"❌ Write test failed: {e}")
+                            
+                except Exception as e:
+                    st.error(f"❌ Error testing connection: {e}")
+            else:
+                st.error("❌ Connection failed!")
+
+# --- Debug information for Google Sheets ---
+def show_google_sheets_debug():
+    """Show debug information for Google Sheets setup"""
+    st.subheader("🔍 Google Sheets Debug Information")
+    
+    # Check secrets
+    try:
+        creds = dict(st.secrets["GOOGLE_SHEET_CREDENTIALS"])
+        sheet_id = st.secrets["GOOGLE_SHEET_ID"]
+        
+        st.success("✅ Streamlit secrets found")
+        st.write(f"Sheet ID: {sheet_id}")
+        st.write(f"Credentials type: {creds.get('type', 'Unknown')}")
+        st.write(f"Client email: {creds.get('client_email', 'Unknown')}")
+        
+    except Exception as e:
+        st.error(f"❌ Streamlit secrets error: {e}")
+        
+        # Check environment variables
+        try:
+            creds_path = os.getenv("GOOGLE_SHEET_CREDENTIALS")
+            sheet_id = os.getenv("GOOGLE_SHEET_ID")
+            
+            if creds_path and sheet_id:
+                st.info("ℹ️ Environment variables found")
+                st.write(f"Credentials path: {creds_path}")
+                st.write(f"Sheet ID: {sheet_id}")
+                st.write(f"Credentials file exists: {os.path.exists(creds_path)}")
+            else:
+                st.error("❌ No environment variables found")
+                
+        except Exception as e:
+            st.error(f"❌ Environment variables error: {e}")
+    
+    # Test connection
+    test_google_sheets_connection()
+
+'''
+def get_google_sheet():
     try:
         scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
         
@@ -839,28 +1084,7 @@ def save_feedback_data(data_row):
     except Exception as e:
         st.error(f"Error saving to CSV: {e}")
     
-    '''
-    try:
-        sheet = get_google_sheet()
-        if sheet:
-            sheet.append_row(data_row)
-    except Exception as e:
-        st.warning(f"Could not save to Google Sheets: {e}")
-
-    # Save to local CSV
-    feedback_path = os.path.join(os.getcwd(), 'feedback.csv')
-    try:
-        with open(feedback_path, mode='a', newline='', encoding='utf-8') as file:
-            writer = csv.writer(file)
-            if file.tell() == 0:
-                writer.writerow([
-                    "Date", "Time", "Participant ID", "User Role", "Age", "Gender", "Symptoms",
-                    "Diagnosis", "Explanation", "Clarity Score", "Trust Score", "UX Score", 
-                    "Comment", "Sentiment", "Confidence Score"
-                ])
-            writer.writerow(data_row)
-    except Exception as e:
-        st.error(f"Error saving to CSV: {e}")
+    
         '''
 
 # --- Check if already submitted ---
@@ -970,6 +1194,7 @@ def show_developer_tools():
         
         if password == "1234":
             create_symptoms_list_from_dataset()
+            show_google_sheets_debug()
 
 # --- Main Streamlit App ---
 def main():
