@@ -782,7 +782,6 @@ def generate_explanation_together_ai(api_key, user_role, symptoms_list, predicte
 # --- Google Sheets setup ---
 
 def get_google_sheet():
-    """Get Google Sheets connection with better error handling"""
     try:
         scope = [
             "https://spreadsheets.google.com/feeds",
@@ -840,7 +839,6 @@ def get_google_sheet():
 
 # --- Fixed save feedback function ---
 def save_feedback_data(data_row):
-    """Save feedback with better error handling and logging"""
     success_google = False
     success_local = False
     
@@ -948,7 +946,6 @@ def save_feedback(pid, role, age, gender, symptoms, diagnosis, explanation, clar
 
 # --- Test Google Sheets connection ---
 def test_google_sheets_connection():
-    """Test function to check Google Sheets connection"""
     st.subheader("🧪 Test Google Sheets Connection")
     
     if st.button("Test Connection"):
@@ -990,7 +987,6 @@ def test_google_sheets_connection():
 
 # --- Debug information for Google Sheets ---
 def show_google_sheets_debug():
-    """Show debug information for Google Sheets setup"""
     st.subheader("🔍 Google Sheets Debug Information")
     
     # Check secrets
