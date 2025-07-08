@@ -780,7 +780,6 @@ def generate_explanation_together_ai(api_key, user_role, symptoms_list, predicte
         return f"❌ Error connecting to API: {e}"
 
 # --- Google Sheets setup ---
-
 def get_google_sheet():
     try:
         scope = [
@@ -837,7 +836,7 @@ def get_google_sheet():
         st.error(f"❌ Error connecting to Google Sheets: {e}")
         return None
 
-# --- Fixed save feedback function ---
+              #--- Fixed save feedback function ---
 def save_feedback_data(data_row):
     success_google = False
     success_local = False
