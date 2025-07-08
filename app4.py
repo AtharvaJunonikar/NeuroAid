@@ -40,7 +40,7 @@ def get_local_ip():
 # Environment variables - try Streamlit secrets first, then fall back to env vars
 try:
     api_key = st.secrets["TOGETHER_AI_API_KEY"]
-    google_credentials = dict(st.secrets["GOOGLE_SHEET_CREDENTIAlS"])  # Note: you have a typo in your secrets
+    google_credentials = dict(st.secrets["GOOGLE_SHEET_CREDENTIALS"]) s
     sheet_id = st.secrets["GOOGLE_SHEET_ID"]
     credentials_path = None  # We'll use the credentials dict directly
 except (KeyError, FileNotFoundError):
@@ -1029,7 +1029,7 @@ def main():
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        user_role = st.selectbox("Your Role:", ["Student", "Doctor", "Elderly", "Other"])
+        user_role = st.selectbox("Your Role:", ["Student", "Doctor", "Elderly"])
     
     with col2:
         age = st.number_input("Age:", min_value=18, max_value=100, value=25)
@@ -1180,13 +1180,7 @@ def main():
     - **Sentiment Analysis:** {'✅ Active' if sentiment_pipeline else '❌ Not Available'}
     """)
     
-    # Contact Information
-    st.sidebar.markdown("### 📧 Support")
-    st.sidebar.markdown("""
-    For technical issues or questions:
-    - Email: support@neuroaid.com
-    - Documentation: [View Docs](https://neuroaid.com/docs)
-    """)
+
 
 if __name__ == "__main__":
     main()
