@@ -1101,6 +1101,9 @@ def main():
                 st.balloons()
                 st.markdown("### 🎉 Participation Complete!")
                 st.markdown("Your feedback is valuable for improving our medical AI system.")
+                for key in list(st.session_state.keys()):
+                     del st.session_state[key]
+                     st.rerun()
                 
             except Exception as e:
                 st.error(f"❌ Error saving feedback: {e}")
