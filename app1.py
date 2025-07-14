@@ -63,7 +63,7 @@ def initialize_symspell():
                     # Give medical terms higher frequency weight
                     sym_spell.create_dictionary_entry(term, 500000)
                     medical_terms_added += 1
-        st.success(f"✅ Loaded {medical_terms_added} medical terms into SymSpell!")
+        #st.success(f"✅ Loaded {medical_terms_added} medical terms into SymSpell!")
     else:
         st.warning("Medical dictionary not found. Using standard dictionary only.")
     
@@ -375,7 +375,7 @@ def main():
         st.session_state.invalid_pid = False
 
     # Show developer tools
-    show_developer_tools()
+   # show_developer_tools()
 
     # UI for Participant ID
     if not st.session_state.id_applied:

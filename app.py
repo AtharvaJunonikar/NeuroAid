@@ -10,12 +10,13 @@ from oauth2client.service_account import ServiceAccountCredentials
 import gspread
 import torch
 from transformers import DistilBertTokenizerFast, DistilBertForSequenceClassification
-#from textblob import TextBlob
+from textblob import TextBlob
 from transformers import pipeline
 # --- SymSpell for Spelling Correction ---
 from symspellpy import SymSpell, Verbosity
 # --- SciSpacy for NER ---
 import spacy
+import streamlit as st
 import subprocess
 import os
 import sys
@@ -82,12 +83,10 @@ nlp = spacy.load("en_ner_bc5cdr_md")  # Clinical NER model
 
 # --- Load your DistilBERT Disease Prediction Model ---
 model_path = "./ml_model/saved_model"
-model = DistilBertForSequenceClassification.from_pretrained(model_path, torch_dtype=torch.float32, device_map="meta")
-model = model.to_empty(device=torch.device("cpu"))
+model = DistilBertForSequenceClassification.from_pretrained(model_path, torch_dtype=torch.float32).to('cpu')
 tokenizer = DistilBertTokenizerFast.from_pretrained(model_path)
 
 # --- Extract symptoms ---
-# --- Spell Correction + NER-based Symptom Extraction ---
 def correct_and_extract_symptoms(text):
     corrected_text = correct_spelling(text)
     doc = nlp(corrected_text)
@@ -114,6 +113,13 @@ def predict_disease(text):
     return predicted_label
 
 
+# --- Spell Correction + NER-based Symptom Extraction ---
+def correct_and_extract_symptoms(text):
+    corrected_text = correct_spelling(text)
+    doc = nlp(corrected_text)
+    symptoms = [ent.text for ent in doc.ents if ent.label_ == "DISEASE"]
+    return corrected_text, symptoms
+
 
 
 def fuzzy_match_symptoms(extracted):
@@ -126,8 +132,8 @@ def fuzzy_match_symptoms(extracted):
 
 # --- Full Pipeline ---
 def full_pipeline(user_input):
-    corrected_text, extracted = correct_and_extract_symptoms(user_input)
-   # extracted = extract_symptoms(corrected_text)
+    corrected_text = correct_spelling(user_input)
+    extracted = extract_symptoms(corrected_text)
     matched = fuzzy_match_symptoms(extracted)
     return matched
 
@@ -255,19 +261,13 @@ def has_already_submitted(participant_id):
 
 
 
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
+
 
 # Load Hugging Face sentiment analysis model (RoBERTa trained on tweets)
-model_name = "cardiffnlp/twitter-roberta-base-sentiment"
-#sentiment_pipeline = pipeline("sentiment-analysis", model="cardiffnlp/twitter-roberta-base-sentiment")
-
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForSequenceClassification.from_pretrained(model_name)
-
-sentiment_pipeline = pipeline("sentiment-analysis", model=model, tokenizer=tokenizer)
-
-
-
+sentiment_pipeline = pipeline(
+    "sentiment-analysis",
+    model="cardiffnlp/twitter-roberta-base-sentiment"
+)
 
 def analyze_sentiment(comment):
     if not comment.strip():
@@ -380,7 +380,7 @@ else:
         corrected_text, extracted_symptoms = correct_and_extract_symptoms(user_input)
         st.session_state.corrected_text = corrected_text
         st.session_state.extracted_symptoms = extracted_symptoms
-        st.session_state.predicted_diagnosis, _ = predict_disease(corrected_text)
+        st.session_state.predicted_diagnosis = predict_disease(corrected_text)
 
 
         # 🛑 NEW: Call Together.ai API to generate explanation dynamically

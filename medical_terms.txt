@@ -99,3 +99,4 @@ parkinson's disease
 alzheimer's disease
 multiple sclerosis
 cancer
+cold
