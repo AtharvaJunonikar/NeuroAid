@@ -150,7 +150,7 @@ def load_sentiment_model():
 
 sentiment_pipeline = load_sentiment_model()
 
-# --- Known symptoms list (you should populate this with actual symptoms) ---
+# --- Known symptoms list---
 known_symptoms = [
     "fever", "headache", "cough", "sore throat", "runny nose", "fatigue",
     "body aches", "nausea", "vomiting", "diarrhea", "chest pain", "shortness of breath",
@@ -374,8 +374,8 @@ def main():
     if "invalid_pid" not in st.session_state:
         st.session_state.invalid_pid = False
 
-    # Show developer tools
-   # show_developer_tools()
+    Show developer tools
+    show_developer_tools()
 
     # UI for Participant ID
     if not st.session_state.id_applied:
